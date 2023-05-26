@@ -1,0 +1,228 @@
+/*
+    Structorizer :: Arranger
+    A little tool which you can use to arrange Nassi-Shneiderman Diagrams (NSD)
+
+    Copyright (C) 2009  Bob Fisch
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or any
+    later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+package lu.fisch.structorizer.arranger;
+
+/******************************************************************************************************
+ *
+ *      Author: Bob Fisch
+ *
+ *      Description: This class is just a holder for diagrams, their owners, and positions within Arranger
+ *
+ ******************************************************************************************************
+ *
+ *      Revision List
+ *
+ *      Author          Date        Description
+ *      ------          ----        -----------
+ *      Bob Fisch       2009-08-18  First Issue
+ *      Kay Gürtzig     2015-11-24  Pinning flag added (issue #35, KGU#88)
+ *      Kay Gürtzig     2016-03-08  Bugfix #97: Method resetDrawingInfo added (KGU#155)
+ *      Kay Gürtzig     2017-01-13  Issue #305 (KGU#330) additional information added to trigger notification
+ *      Kay Gürtzig     2018-12-26  Enh. #655 method getName() introduced
+ *      Kay Gürtzig     2019-01-20  Bugfix #667 in method getName().
+ *      Kay Gürtzig     2019-03-10  Issue #698: Inheritance changed to ArchiveRecord, indentations aligned
+ *      Kay Gürtzig     2021-02-24  Enh. #410: Signature change tracking now also checks the namespace
+ *
+ ******************************************************************************************************
+ *
+ * Comment:	/
+ *
+ ******************************************************************************************************///
+
+import java.awt.Point;
+
+import lu.fisch.structorizer.archivar.ArchiveRecord;
+import lu.fisch.structorizer.elements.Root;
+import lu.fisch.structorizer.gui.Mainform;
+import lu.fisch.utils.StringList;
+
+/**
+ *
+ * @author robertfisch
+ */
+public class Diagram extends ArchiveRecord
+{
+	Mainform mainform = null;
+	// START KGU#88 2015-11-24
+	boolean isPinned = false;
+	// END KGU#88 2015-11-24
+	// START KGU#330 2017-01-13: Enh. #305 We keep redundant information to be able to trigger change notifications
+	private String signature = null;
+	// END KGU#330 2017-01-13
+	// START KGU#626 2018-12-28: Enh. #657 - group management
+	private final StringList groupNames = new StringList(); 
+	/**
+	 * Indicates that the diagram had been moved. Is to be reset when an arrangement containing this diagram
+	 * is saved. Therefore all groups must cache the disjunction of all wasMoved values of all their diagrams
+	 * because otherwise they might seem "clean" if all contained diagrams were saved with some totally different
+	 * arrangement.
+	 */
+	protected boolean wasMoved = false;
+	// END KGU#626 2018-12-28
+
+	public Diagram(Root root, Point point)
+	{
+		super(root,  point);
+		// START KGU#330 2017-01-13: Enh. #305 We keep redundant information to be able to trigger change notifications
+		// START KGU#408 2021-02-24: Enh. #410 - involve namespace info
+		//signature = root.getSignatureString(true);
+		signature = root.getSignatureString(true, true);
+		// END KGU#408 2021-02-24
+		// END KGU#330 2017-01-13
+	}
+
+	// START KGU#155 2016-03-08: Bugfix #97 extension
+	/**
+	 * Invalidates the cached prepareDraw info of all diagrams residing here
+	 * (to be called on events with heavy impact on the size or shape of some
+	 * Elements)
+	 * @param _exceptDiagr the hash code of a lu.fisch.structorizer.gui.Diagram
+	 * that is not to be invoked (to avoid recursion)
+	 */
+	public void resetDrawingInfo(int _exceptDiagr)
+	{
+		if (root != null)
+		{
+			root.resetDrawingInfoDown();
+		}
+		// The following seems too much, actually
+//		if (mainform != null && mainform.diagram != null &&
+//				mainform.diagram.hashCode() != _exceptDiagr)
+//		{
+//			mainform.diagram.resetDrawingInfo(false);
+//		}
+	}
+	// END KGU#155 2016-03-08
+	
+	// START KGU#330 2017-01-13: Enh. #305
+	/**
+	 * Identifies notification-relevant changes (and updates the cached info). This includes
+	 * @return true iff the signature string for the Arranger index has changed
+	 */
+	public boolean checkSignatureChange()
+	{
+		String oldSignature = this.signature;
+		// START KGU#408 2021-02-24: Enh. #410 - involve namespace info
+		//this.signature = root.getSignatureString(true);
+		this.signature = root.getSignatureString(true, true);
+		// END KGU#408 2021-02-24
+		return !this.signature.equals(oldSignature);
+	}
+	// END KGU#330 2017-01-13
+	
+	// START KGU#408 2021-02-28: Enh. #410
+	/**
+	 * @return the cached signature string of the recently held {@link Root} or
+	 * possibly {@code null}
+	 */
+	public String getCachedSignature()
+	{
+		return this.signature;
+	}
+	// END KGU#408 2021-02-28
+	
+	// START KGU#624 2018-12-26: Enh. #655
+	/** @return the pure diagram name (extracted from the cached signature) */
+	public String getName()
+	{
+		String name = this.signature;
+		if (name != null) {
+			int pos1 = name.indexOf(':');
+			if (pos1 > 0) {
+				name = name.substring(0, pos1);
+			}
+			if ((pos1 = name.indexOf('(')) > 0) {
+				name = name.substring(0, pos1);
+			}
+			// START KGU#639 2019-01-20: Bugfix #667 - we must not return a name with leading asterisk
+			if (name.startsWith("*")) {
+				// Remove the change marker!
+				name = name.substring(1);
+			}
+			// END KGU#639 2019-01-20
+			// START KGU#408 2021-02-24: Enh. #410 - to be consistent with prior mechanisms we must skip prefix
+			int posDot = name.lastIndexOf('.');
+			if (posDot >= 0) {
+				name = name.substring(posDot+1);
+			}
+			// END KGU#408 2021-02-24
+		}
+		return name;
+	}
+	// END KGU#624 2018-12-26
+
+	// START KGU#626 2018-12-28: Enh. #657 - group management
+    /**
+     * NOTE: This method should not be called directly but from {@link Group#addDiagram(Diagram)}.
+     * @param _group - the {@link Group} this diagram is being added to
+     * @return true if the group had not been registered with this diagram before, false otherwise
+     */
+	protected boolean addToGroup(Group _group)
+	{
+		if (_group == null) return false;
+		return this.groupNames.addIfNew(_group.getName());
+	}
+
+	/**
+     * NOTE: This method should not be called directly but from {@link Group#removeDiagram(Diagram)}.
+     * @param _group - the {@link Group} this diagram is being added to
+     * @return true if the group had indeed been registered with this diagram before, false otherwise
+     */
+	protected boolean removeFromGroup(Group _group)
+	{
+		if (_group == null) return false;
+		return this.groupNames.removeAll(_group.getName()) > 0;
+	}
+	// END KGU#626 2018-12-28
+
+	// START KGU#626 2018-12-30: Enh. #657
+	/**
+	 * @return the array of the group names this diagram is member of.
+	 * @see #addToGroup(Group)
+	 * @see #removeFromGroup(Group)
+	 */
+	public String[] getGroupNames()
+	{
+		return this.groupNames.toArray();
+	}
+
+	/**
+	 * Moves the diagram's reference point to the new coordinates and registers the movement
+	 * @param newX
+	 * @param newY
+	 */
+	public void setLocation(int newX, int newY)
+	{
+		boolean differs = this.point.x != newX || this.point.y != newY;
+		this.point.setLocation(newX, newY);
+		this.wasMoved = differs;
+	}
+	// END KGU#626 2018-12-30
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString()
+	{
+		return this.getClass().getSimpleName() + "(" + this.point + ", " + this.root + ")";
+	}
+}
