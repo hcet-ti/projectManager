@@ -1,0 +1,174 @@
+#!/bin/bash
+set -e
+################################################################################
+#
+#      Author:        Klaus-Peter Reimers
+#
+#      Description:   This script compiles the source code, 
+#                     generates a standard java application
+#                     and then runs the application
+#
+################################################################################
+#
+#      Revision List
+#
+#      Author                         Date         Description
+#      ------                         ----         -----------
+#      Klaus-Peter Reimers            2008-06-04   First Issue
+#      Bob Fisch                      2006-06-06   Script modified to work
+#                                                  within an Eclipse project
+#      Bob Fisch & Philipp Hübner     2009-07-08   Scripting ameliorations
+#      Kay Gürtzig                    2016-12-27   More resource files copied
+#      Simon Sobisch                  2017-03-06   Check for javac
+#      Kay Gürtzig                    2018-01-26   Additional icon directories
+#                                                  copied
+#      Simon Sobisch                  2018-06-08   Create bin directory, if missing
+#      Simon Sobisch                  2018-09-17   added missing ressources;
+#                                                  fix msys classpath;
+#                                                  Include Apple extensions if
+#                                                  OS matches;
+#                                                  changed script output
+#      Kay Gürtzig                    2018-09-18   bsh-2.0b4.jar replaced with bsh-2.0b6.jar
+#      Kay Gürtzig                    2018-09-27   Added missing *.cgt and *.egt resources
+#      Kay Gürtzig                    2019-01-16   Added missing *.nsd resources in parsers (#665)
+#      Simon Sobisch                  2020-01-20   added handling for nostart argument,
+#                                                  default to detached start
+#      Kay Gürtzig                    2020-04-20   Copy command for logging.properties added
+#      Kay Gürtzig                    2022-01-05   bsh-2.0b6.jar replaced with bsh-0.2b6.jar
+#
+################################################################################
+
+# check for javac in PATH
+javac -version 2>/dev/null || \
+  (rc=$? && echo 'javac not found in $PATH' && exit $rc)
+
+start_compiled="x"
+case "$1" in
+  nostart | no-start | no_start)
+    start_compiled=""
+    shift
+    ;;
+  start | no-sync | no_sync | detached)
+    start_compiled="x"
+    shift
+    ;;
+  start-sync | sync | start_sync )
+    start_compiled="s"
+    shift
+    ;;
+esac
+
+# common javac opts
+str_javac_opts="-d ../bin/ -encoding utf8 $*"
+
+# jar list
+jars="bsh-2.1.0                     \
+      swing-layout-1.0.3            \
+      freehep-graphics2d-2.1.1      \
+      freehep-graphicsio-2.1.1      \
+      freehep-graphicsio-svg-2.1.1  \
+      freehep-io-2.0.2              \
+      freehep-swing-2.0.3           \
+      freehep-util-2.0.2            \
+      freehep-xml-2.1.1             \
+      freehep"
+
+# add OS specific jars if present
+do_apple=""
+case $OSTYPE in
+  darwin*)
+    jars="$jars AppleJavaExtensions"
+    do_apple="x"
+    ;;
+esac
+
+# common classpath
+str_classpath="."
+for jar in $jars
+do
+  str_classpath="$str_classpath:../lib/$jar.jar"
+done
+
+# assume we have a win-native java/javac when running on msys,
+# fixing classpath entry
+case $OSTYPE in
+  msys)
+    echo "Using Windows Style classpath"
+    str_classpath=$(echo "$str_classpath" | sed -e 's/:/;/g')
+    ;;
+esac
+
+# delete old class files from "lu" package
+echo "Removing old files..."
+[ -d bin ] && rm -R bin
+mkdir bin
+find src -name '*.class' -exec rm {} \;
+echo "Done"
+
+# change into the "src" directory
+pushd src >/dev/null
+
+# compile the generator classes (non-dependant classes)
+echo; echo "Compiling non-dependant classes..."
+javac $str_javac_opts -classpath "$str_classpath" lu/fisch/structorizer/generators/*.java
+echo "Done"
+
+# compile the application itself (and all dependent classes)
+echo; echo "Compiling Structorizer..."
+javac $str_javac_opts -classpath "$str_classpath" Structorizer.java
+echo "Done"
+echo; echo "Compiling Structorizer Applet..."
+javac $str_javac_opts -classpath "$str_classpath" StructorizerApplet.java
+echo "Done"
+
+# OS specific classes
+if test -n "$do_apple"; then
+  echo; echo "Compiling Apple specific code..."
+  javac $str_javac_opts -classpath "$str_classpath" lu/fisch/structorizer/application/AppleStructorizerApplication.java
+  echo "Done"
+else
+  echo; echo "Apple specific code skipped"
+fi
+
+# copying some other files to binary tree
+echo; echo "Copying resources..."
+for icondir in icons icons_24 icons_32 icons_48 icons_64
+do
+  [ -d ../bin/lu/fisch/structorizer/gui/$icondir ] && rm -R ../bin/lu/fisch/structorizer/gui/$icondir
+  mkdir ../bin/lu/fisch/structorizer/gui/$icondir 
+  echo "Copying icon dir $icondir .."
+  cp -R lu/fisch/structorizer/gui/$icondir/* ../bin/lu/fisch/structorizer/gui/$icondir/
+done
+
+cp lu/fisch/turtle/*.png ../bin/lu/fisch/turtle/
+cp lu/fisch/structorizer/executor/*.png ../bin/lu/fisch/structorizer/executor/
+
+cp lu/fisch/structorizer/gui/*.txt ../bin/lu/fisch/structorizer/gui/
+cp lu/fisch/structorizer/gui/*.xml ../bin/lu/fisch/structorizer/gui/
+cp lu/fisch/structorizer/locales/*.txt ../bin/lu/fisch/structorizer/locales/
+cp lu/fisch/structorizer/generators/*.txt ../bin/lu/fisch/structorizer/generators/
+cp lu/fisch/structorizer/parsers/*.cgt ../bin/lu/fisch/structorizer/parsers/
+cp lu/fisch/structorizer/parsers/*.egt ../bin/lu/fisch/structorizer/parsers/
+cp lu/fisch/structorizer/parsers/*.grm ../bin/lu/fisch/structorizer/parsers/
+cp lu/fisch/structorizer/parsers/*.xsd ../bin/lu/fisch/structorizer/parsers/
+cp lu/fisch/structorizer/parsers/*.nsd ../bin/lu/fisch/structorizer/parsers/
+cp lu/fisch/structorizer/*.properties ../bin/lu/fisch/structorizer/
+echo "Done"
+
+if test -n "$start_compiled"; then
+
+  # changing into binary directory
+  cd ../bin/
+
+  # run the application
+  echo; echo "Running Structorizer from compiled class files"
+  if test "$start_compiled" = "s"; then
+    java -cp $str_classpath Structorizer
+  else
+    java -cp $str_classpath Structorizer &
+  fi
+
+fi  # start block end
+
+# move back into the folder where we started
+popd >/dev/null

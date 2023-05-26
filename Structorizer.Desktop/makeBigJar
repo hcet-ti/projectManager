@@ -1,0 +1,125 @@
+#!/bin/bash
+set -e
+################################################################################
+#
+#      Author:        Bob Fisch
+#
+#      Description:   create all-in-one jar file with all external jars included
+#
+################################################################################
+#
+#      Revision List
+#
+#      Author                         Date         Description
+#      ------                         ----         -----------
+#      Bob Fisch                      2008-10-15   First Issue
+#      Bob Fisch & Philipp Hübner     2009-07-08   Scripting ameliorations
+#      Bob Fisch                      2010-01-25   Update for new libraries and
+#                                                  signature removing
+#      Simon Sobisch                  2017-03-06   Check for jar;
+#                                                  adjusted script output;
+#                                                  using recursive cp for libs
+#      Simon Sobisch                  2018-09-17   Include Apple extensions if
+#                                                  available;
+#                                                  changed script output
+#      Kay Gürtzig                    2018-09-18   bsh-2.0b4.jar replaced with bsh-2.0b6.jar
+#      Simon Sobisch                  2020-01-20   added handling for nostart argument,
+#                                                  default to detached start
+#      Kay Gürtzig                    2022-01-05   bsh-2.0b6.jar replaced with bsh-2.1.0.jar
+#
+################################################################################
+
+# check for jar in PATH
+jar 2>/dev/null 1>&2 || \
+  (rc=$? && if test $rc -gt 1; then
+    (echo 'jar not found in $PATH' && exit $rc)
+   fi)
+
+# delete the old archive (if present)
+[ -f structorizer.jar ] && rm structorizer.jar
+
+# create clean directory
+[ -d jar ] && rm -R jar
+mkdir jar
+
+# copy libs
+cp -R lib/* jar
+
+start_compiled="x"
+case "$1" in
+  nostart | no-start | no_start)
+    start_compiled=""
+    shift
+    ;;
+  start | no-sync | no_sync | detached)
+    start_compiled="x"
+    shift
+    ;;
+  start-sync | sync | start_sync )
+    start_compiled="s"
+    shift
+    ;;
+esac
+
+# change into jar directory
+pushd jar >/dev/null
+
+jars="bsh-2.1.0                     \
+      swing-layout-1.0.3            \
+      freehep-graphics2d-2.1.1      \
+      freehep-graphicsio-2.1.1      \
+      freehep-graphicsio-svg-2.1.1  \
+      freehep-io-2.0.2              \
+      freehep-swing-2.0.3           \
+      freehep-util-2.0.2            \
+      freehep-xml-2.1.1             \
+      freehep"
+
+# Apple specific stuff is only used if it exists and the compiled class is available
+if test -f ../bin/lu/fisch/structorizer/application/AppleStructorizerApplication.class -a \
+        -f AppleJavaExtensions.jar; then
+  jars="$jars AppleJavaExtensions"
+fi
+
+# decompress jars
+echo "Decompressing jars ..."
+for jar in $jars
+do
+  echo "   $jar"
+  jar xf "$jar.jar"
+done
+echo "Done"
+
+
+# deleting signatures
+rm -f META-INF/*.SF
+rm -f META-INF/*.DSA
+
+# remove jar files
+rm *.jar
+
+# go back
+popd >/dev/null
+
+# copy other files
+echo; echo "Copying resources..."
+cp -R bin/* jar/
+echo "Done"
+
+# create a new archive
+echo; echo "Create all-on-one archive.."
+jar cmf structorizer.big.manifest structorizer.jar -C jar/ .
+echo "Done"
+
+# remove the jar-directory
+rm -R jar/
+
+if test -n "$start_compiled"; then
+  # execute the archive
+  echo; echo "Running Structorizer from all-in-one jar"
+  if test "$start_compiled" = "s"; then
+    java -jar structorizer.jar
+  else
+    java -jar structorizer.jar &
+  fi
+fi  # start block end

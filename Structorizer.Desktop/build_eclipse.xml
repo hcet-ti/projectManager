@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. -->
+<project basedir="." default="build" name="Structorizer">
+    <property environment="env"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="11"/>
+    <property name="source" value="11"/>
+    <!-- import file="build.xml"/ -->
+    <path id="Structorizer.classpath">
+        <pathelement location="bin"/>
+        <pathelement location="lib/swing-layout-1.0.3.jar"/>
+        <pathelement location="lib/freehep-graphics2d-2.1.1.jar"/>
+        <pathelement location="lib/freehep-graphicsio-2.1.1.jar"/>
+        <pathelement location="lib/freehep-graphicsio-svg-2.1.1.jar"/>
+        <pathelement location="lib/freehep-io-2.0.2.jar"/>
+        <pathelement location="lib/freehep-swing-2.0.3.jar"/>
+        <pathelement location="lib/freehep-util-2.0.2.jar"/>
+        <pathelement location="lib/freehep-xml-2.1.1.jar"/>
+        <pathelement location="lib/freehep.jar"/>
+        <pathelement location="lib/AppleJavaExtensions.jar"/>
+        <pathelement location="lib/bsh-2.1.0.jar"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src">
+                <exclude name="**/*.launch"/>
+                <exclude name="**/*.java"/>
+                <exclude name="._*.*"/>
+                <exclude name="lu/fisch/structorizer/gui/icons_128/"/>
+                <exclude name="lu/fisch/structorizer/gui/icons_16/"/>
+                <exclude name="lu/fisch/structorizer/gui/icons_256/"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target depends="clean" name="cleanall"/>
+    <target depends="build-subprojects,build-project" name="build"/>
+    <target name="build-subprojects"/>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" includeantruntime="false" source="${source}" target="${target}">
+            <src path="src"/>
+            <exclude name="._*.*"/>
+            <exclude name="lu/fisch/structorizer/gui/icons_128/"/>
+            <exclude name="lu/fisch/structorizer/gui/icons_16/"/>
+            <exclude name="lu/fisch/structorizer/gui/icons_256/"/>
+            <classpath refid="Structorizer.classpath"/>
+        </javac>
+    </target>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
+    </target>
+    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
+    </target>
+    <target name="Arranger">
+        <java classname="lu.fisch.structorizer.arranger.Arranger" failonerror="true" fork="yes">
+            <classpath refid="Structorizer.classpath"/>
+        </java>
+    </target>
+    <target name="Structorizer">
+        <java classname="Structorizer" failonerror="true" fork="yes">
+            <classpath refid="Structorizer.classpath"/>
+        </java>
+    </target>
+    <target name="Translator">
+        <java classname="lu.fisch.structorizer.locales.Translator" failonerror="true" fork="yes">
+            <classpath refid="Structorizer.classpath"/>
+        </java>
+    </target>
+    <target name="FileDrop">
+        <java classname="net.iharder.dnd.FileDrop" failonerror="true" fork="yes">
+            <classpath refid="Structorizer.classpath"/>
+        </java>
+    </target>
+    <target name="StringList">
+        <java classname="lu.fisch.utils.StringList" failonerror="true" fork="yes">
+            <classpath refid="Structorizer.classpath"/>
+        </java>
+    </target>
+    <target name="Main (Turtle)">
+        <java classname="lu.fisch.turtle.Main" failonerror="true" fork="yes">
+            <classpath refid="Structorizer.classpath"/>
+        </java>
+    </target>
+</project>
