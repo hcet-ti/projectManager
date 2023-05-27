@@ -1,5 +1,5 @@
 # projectManager
-![Showing off Project Manager](http://projectmanager.great-site.net/assets/img/Showing%20Project%20Manager.gif)
+![Showing_off_Project_Manager](http://projectmanager.great-site.net/assets/img/Showing%20Project%20Manager.gif)
 A simple program to convert C files into POS homework PDFs.
 
 🌍 Website: http://projectmanager.great-site.net
