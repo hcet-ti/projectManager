@@ -1,10 +1,12 @@
 # projectManager
-<img src="https://github.com/hcet-ti/projectManager/blob/main/docs/Showing%20Project%20Manager.gif?raw=true" alt="Showing_off_Project_Manager">
 A simple program to convert C files into POS homework PDFs.
 
 🌍 Website: http://projectmanager.great-site.net
 
 The entry point is located at `ui.c`, which contains most of the UI code. Most of the computing, converting and creating happens inside `PDFGen-0.1.0/pdfgen.c`, a library I modified a bit to fit my needs (original: https://github.com/AndreRenaud/PDFGen). Also, a big thanks to the creators of the other libraries that I used (https://github.com/deinernstjetzt/mregexp, https://github.com/Theldus/kat and of course https://github.com/fesch/Structorizer.Desktop).
+
+## Example
+<img src="https://github.com/hcet-ti/projectManager/blob/main/docs/Showing%20Project%20Manager.gif?raw=true" alt="Showing_off_Project_Manager">
 
 ## Dependencies
 - Java v11 or higher
