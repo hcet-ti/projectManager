@@ -1,5 +1,5 @@
 # projectManager
-<img src="http://projectmanager.great-site.net/assets/img/Showing%20Project%20Manager.gif" width="200px" alt="Showing_off_Project_Manager">
+<img src="https://github.com/hcet-ti/projectManager/blob/main/docs/Showing%20Project%20Manager.gif?raw=true" width="200px" alt="Showing_off_Project_Manager">
 A simple program to convert C files into POS homework PDFs.
 
 🌍 Website: http://projectmanager.great-site.net
